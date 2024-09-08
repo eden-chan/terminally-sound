@@ -22,6 +22,8 @@ export enum Direction {
 }
 
 export interface Note {
-  note: string;
-  octave: number;
+  pitch: string;
+  duration: number;
+  velocity: number;
+  octive?: number;
 }

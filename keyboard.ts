@@ -1,22 +1,21 @@
+// keyboard.ts
 import { MusicalStaff } from './musicalStaff';
-import { Direction, ScaleType } from './types';
+import { Direction, ScaleType, Note } from './types';
 import { AudioPlayer } from './audioPlayer';
 
-class Keyboard {
-  async playNote(noteSymbol: string, duration = 0.5): Promise<void> {
-    const frequency = MusicalStaff.noteToFrequency(noteSymbol);
-    await AudioPlayer.playFrequencies([frequency], duration);
+export class Keyboard {
+  async playNote(note: Note): Promise<void> {
+    const frequency = MusicalStaff.noteToFrequency(note.pitch);
+    await AudioPlayer.playFrequencies([frequency], note.duration, note.velocity);
   }
-  async playSequence(sequence: string[], durations?: number[]): Promise<void> {
-    for (let i = 0; i < sequence.length; i++) {
-      const note = sequence[i];
-      const duration = durations && durations[i] !== undefined ? durations[i] : 0.5;
-      await this.playNote(note, duration);
+
+  async playSequence(sequence: Note[]): Promise<void> {
+    for (const note of sequence) {
+      await this.playNote(note);
     }
   }
-  getScale(startNote: string, scaleType: ScaleType = ScaleType.Major, direction: Direction = Direction.Ascending): string[] {
+
+  getScale(startNote: string, scaleType: ScaleType = ScaleType.Major, direction: Direction = Direction.Ascending): Note[] {
     return MusicalStaff.generateScale(startNote, scaleType, direction);
   }
 }
-
-export { Keyboard, MusicalStaff, ScaleType, Direction };
