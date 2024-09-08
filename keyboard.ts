@@ -1,15 +1,24 @@
 #!/usr/bin/env bun
-
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+enum ScaleType {
+  Major = 'major',
+  Minor = 'minor'
+}
+
+enum Direction {
+  Ascending = 'ascending',
+  Descending = 'descending'
+}
+
 class MusicalStaff {
   private static readonly NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
   static parseNote(noteSymbol: string): { note: string; octave: number } {
-    const match = noteSymbol.match(/^([A-G]#?)(\d+)$/);
+    const match = noteSymbol.match(/^([A-G]#?)(-?\d+)$/);
     if (!match) throw new Error(`Invalid note symbol: ${noteSymbol}`);
     const [, note, octaveStr] = match;
     return { note, octave: parseInt(octaveStr) };
@@ -25,49 +34,35 @@ class MusicalStaff {
     return baseFrequency * Math.pow(2, semitones / 12);
   }
 
-  static generateScale(startNote: string, scaleType: 'major' | 'minor' = 'major'): string[] {
+static generateScale(startNote: string, scaleType: ScaleType = ScaleType.Major, direction: Direction = Direction.Ascending): string[] {
     const { note, octave } = MusicalStaff.parseNote(startNote);
     const startIndex = MusicalStaff.NOTES.indexOf(note);
-    const scaleIntervals = scaleType === 'major' ? [2, 2, 1, 2, 2, 2, 1] : [2, 1, 2, 2, 1, 2, 2];
+    const scaleIntervals = scaleType === ScaleType.Major ? [2, 2, 1, 2, 2, 2, 1] : [2, 1, 2, 2, 1, 2, 2];
     
-    return scaleIntervals.reduce((scale, interval) => {
-      const prevNote = scale[scale.length - 1];
-      const { note: prevNoteName, octave: prevOctave } = MusicalStaff.parseNote(prevNote);
-      const prevIndex = MusicalStaff.NOTES.indexOf(prevNoteName);
-      const newIndex = (prevIndex + interval) % 12;
-      const newOctave = prevOctave + (prevIndex + interval >= 12 ? 1 : 0);
-      const newNote = `${MusicalStaff.NOTES[newIndex]}${newOctave}`;
-      scale.push(newNote);
-      return scale;
-    }, [startNote]);
-  }
-
-  static getChordNotes(rootNote: string, chordType: string): string[] {
-    const { note: rootNoteName, octave } = MusicalStaff.parseNote(rootNote);
-    const rootIndex = MusicalStaff.NOTES.indexOf(rootNoteName);
-    
-    const chordIntervals: { [key: string]: number[] } = {
-      'major': [0, 4, 7],
-      'minor': [0, 3, 7],
-      'diminished': [0, 3, 6],
-      'augmented': [0, 4, 8],
-      'sus2': [0, 2, 7],
-      'sus4': [0, 5, 7],
-      '7': [0, 4, 7, 10],
-      'maj7': [0, 4, 7, 11],
-      'm7': [0, 3, 7, 10],
-      'dim7': [0, 3, 6, 9],
-    };
-
-    if (!(chordType in chordIntervals)) {
-      throw new Error(`Unsupported chord type: ${chordType}`);
+    if (direction === Direction.Ascending) {
+      return scaleIntervals.reduce((scale, interval) => {
+        const prevNote = scale[scale.length - 1];
+        const { note: prevNoteName, octave: prevOctave } = MusicalStaff.parseNote(prevNote);
+        const prevIndex = MusicalStaff.NOTES.indexOf(prevNoteName);
+        const newIndex = (prevIndex + interval) % 12;
+        const newOctave = prevOctave + (prevIndex + interval >= 12 ? 1 : 0);
+        const newNote = `${MusicalStaff.NOTES[newIndex]}${newOctave}`;
+        scale.push(newNote);
+        return scale;
+      }, [startNote]);
+    } else {
+      // Generate ascending scale first
+      const ascendingScale = this.generateScale(startNote, scaleType, Direction.Ascending);
+      
+      // Reverse the ascending scale and remove the first and last notes to avoid duplication
+      const descendingScale = ascendingScale.slice(0, -1).reverse();
+      
+      // Ensure the scale doesn't go below C0
+      return descendingScale.filter(note => {
+        const { octave } = MusicalStaff.parseNote(note);
+        return octave >= 0;
+      });
     }
-
-    return chordIntervals[chordType].map(interval => {
-      const noteIndex = (rootIndex + interval) % 12;
-      const noteOctave = octave + Math.floor((rootIndex + interval) / 12);
-      return `${MusicalStaff.NOTES[noteIndex]}${noteOctave}`;
-    });
   }
 }
 
@@ -94,44 +89,22 @@ class Keyboard {
     }
   }
 
-  async playChord(rootNote: string, chordType: string, duration = 0.7): Promise<void> {
-    const chordNotes = MusicalStaff.getChordNotes(rootNote, chordType);
-    const frequencies = chordNotes.map(MusicalStaff.noteToFrequency);
-    await this.playFrequencies(frequencies, duration);
-  }
-
-  getScale(startNote: string, scaleType: 'major' | 'minor' = 'major'): string[] {
-    return MusicalStaff.generateScale(startNote, scaleType);
+  getScale(startNote: string, scaleType: ScaleType = ScaleType.Major, direction: Direction = Direction.Ascending): string[] {
+    return MusicalStaff.generateScale(startNote, scaleType, direction);
   }
 }
 
 // Example usage
 const keyboard = new Keyboard();
 
-console.log("Welcome to the Improved Bun Musical Keyboard!");
-console.log("Example usage:");
-console.log("await keyboard.playNote('A4');");
-console.log("await keyboard.playSequence(['C4', 'E4', 'G4', 'C5']);");
-console.log("await keyboard.playChord('C4', 'major');");
-console.log("const cMajorScale = keyboard.getScale('C4', 'major');");
+// Play C major and C minor scales, ascending and descending
+console.log("Playing C major ascending scale...");
+await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Major, Direction.Ascending));
+console.log("Playing C major descending scale...");
+await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Major, Direction.Descending));
+console.log("Playing C minor ascending scale...");
+await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Minor, Direction.Ascending));
+console.log("Playing C minor descending scale...");
+await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Minor, Direction.Descending));
 
-// Play a C major scale
-console.log("Playing C major scale...");
-await keyboard.playSequence(keyboard.getScale('C4', 'major'));
-
-// Play a simple chord progression
-console.log("Playing a I-V-vi-IV chord progression in C major...");
-await keyboard.playChord('C4', 'major');
-await keyboard.playChord('G4', 'major');
-await keyboard.playChord('A4', 'minor');
-await keyboard.playChord('F4', 'major');
-
-// Play some extended chords
-console.log("Playing some extended chords...");
-await keyboard.playChord('D4', '7');
-await keyboard.playChord('E4', 'maj7');
-await keyboard.playChord('F4', 'm7');
-await keyboard.playChord('G4', 'sus4');
-
-// Export the Keyboard and MusicalStaff classes
-export { Keyboard, MusicalStaff };
+export { Keyboard, MusicalStaff, ScaleType, Direction };
