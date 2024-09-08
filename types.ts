@@ -27,3 +27,15 @@ export interface Note {
   velocity: number;
   octive?: number;
 }
+
+export type Chord = Note[];
+
+export enum ChordType {
+  Major = 'major',
+  Minor = 'minor',
+  Diminished = 'diminished',
+  Augmented = 'augmented',
+  MajorSeventh = 'major7',
+  MinorSeventh = 'minor7',
+  DominantSeventh = 'dominant7',
+}

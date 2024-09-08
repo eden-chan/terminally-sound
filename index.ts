@@ -1,6 +1,6 @@
 // index.ts
 import { Keyboard } from './keyboard';
-import { ScaleType, Direction, Note } from './types';
+import { ScaleType, Direction, Note, ChordType } from './types';
 
 const keyboard = new Keyboard();
 
@@ -19,7 +19,7 @@ async function playAndLogScale(startNote: string, scaleType: ScaleType, directio
   await keyboard.playSequence(scale);
 }
 
-async function main() {
+async function test_scales() {
   const startNotes = ['C4', 'G4', 'F#4', 'Bb4'];
   const scaleTypes = [ScaleType.Blues, ScaleType.PentatonicMajor, ScaleType.PentatonicMinor];
   
@@ -35,4 +35,14 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+async function test_chords() {
+  const sequence = [
+    keyboard.getChord('C4', ChordType.Major),
+    keyboard.getChord('F4', ChordType.Major),
+    keyboard.getChord('G4', ChordType.DominantSeventh),
+    keyboard.getChord('C4', ChordType.Major),
+  ];
+  await keyboard.playSequence(sequence);
+}
+test_chords().catch(console.error);
+// test_scales().catch(console.error);

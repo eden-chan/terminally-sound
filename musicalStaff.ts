@@ -1,5 +1,5 @@
 // musicalStaff.ts
-import { ScaleType, Direction, Note } from './types';
+import { ScaleType, Direction, Note, ChordType, Chord } from './types';
 
 export class MusicalStaff {
   private static readonly NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -67,5 +67,43 @@ export class MusicalStaff {
         return octave >= 0;
       });
     }
+  }
+  static generateChord(rootNote: string, chordType: ChordType): Chord {
+    const { note, octave } = MusicalStaff.parseNote(rootNote);
+    const rootIndex = MusicalStaff.NOTES.indexOf(note);
+    let intervals: number[];
+
+    switch (chordType) {
+      case ChordType.Major:
+        intervals = [0, 4, 7];
+        break;
+      case ChordType.Minor:
+        intervals = [0, 3, 7];
+        break;
+      case ChordType.Diminished:
+        intervals = [0, 3, 6];
+        break;
+      case ChordType.Augmented:
+        intervals = [0, 4, 8];
+        break;
+      case ChordType.MajorSeventh:
+        intervals = [0, 4, 7, 11];
+        break;
+      case ChordType.MinorSeventh:
+        intervals = [0, 3, 7, 10];
+        break;
+      case ChordType.DominantSeventh:
+        intervals = [0, 4, 7, 10];
+        break;
+      default:
+        throw new Error(`Unsupported chord type: ${chordType}`);
+    }
+
+    return intervals.map(interval => {
+      const newIndex = (rootIndex + interval) % 12;
+      const newOctave = octave + Math.floor((rootIndex + interval) / 12);
+      const pitch = `${MusicalStaff.NOTES[newIndex]}${newOctave}`;
+      return { pitch, duration: 0.5, velocity: 0.8 };
+    });
   }
 }
