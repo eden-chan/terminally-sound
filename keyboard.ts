@@ -6,7 +6,20 @@ const execAsync = promisify(exec);
 
 enum ScaleType {
   Major = 'major',
-  Minor = 'minor'
+  NaturalMinor = 'natural_minor',
+  HarmonicMinor = 'harmonic_minor',
+  MelodicMinor = 'melodic_minor',
+  Dorian = 'dorian',
+  Phrygian = 'phrygian',
+  Lydian = 'lydian',
+  Mixolydian = 'mixolydian',
+  Locrian = 'locrian',
+  WholeTone = 'whole_tone',
+  Diminished = 'diminished',
+  Chromatic = 'chromatic',
+  PentatonicMajor = 'pentatonic_major',
+  PentatonicMinor = 'pentatonic_minor',
+  Blues = 'blues'
 }
 
 enum Direction {
@@ -16,6 +29,24 @@ enum Direction {
 
 class MusicalStaff {
   private static readonly NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+  private static readonly SCALE_INTERVALS: { [key in ScaleType]: number[] } = {
+    [ScaleType.Major]: [2, 2, 1, 2, 2, 2, 1],
+    [ScaleType.NaturalMinor]: [2, 1, 2, 2, 1, 2, 2],
+    [ScaleType.HarmonicMinor]: [2, 1, 2, 2, 1, 3, 1],
+    [ScaleType.MelodicMinor]: [2, 1, 2, 2, 2, 2, 1],
+    [ScaleType.Dorian]: [2, 1, 2, 2, 2, 1, 2],
+    [ScaleType.Phrygian]: [1, 2, 2, 2, 1, 2, 2],
+    [ScaleType.Lydian]: [2, 2, 2, 1, 2, 2, 1],
+    [ScaleType.Mixolydian]: [2, 2, 1, 2, 2, 1, 2],
+    [ScaleType.Locrian]: [1, 2, 2, 1, 2, 2, 2],
+    [ScaleType.WholeTone]: [2, 2, 2, 2, 2, 2],
+    [ScaleType.Diminished]: [2, 1, 2, 1, 2, 1, 2, 1],
+    [ScaleType.Chromatic]: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [ScaleType.PentatonicMajor]: [2, 2, 3, 2, 3],
+    [ScaleType.PentatonicMinor]: [3, 2, 2, 3, 2],
+    [ScaleType.Blues]: [3, 2, 1, 1, 3, 2]
+  };
 
   static parseNote(noteSymbol: string): { note: string; octave: number } {
     const match = noteSymbol.match(/^([A-G]#?)(-?\d+)$/);
@@ -34,10 +65,10 @@ class MusicalStaff {
     return baseFrequency * Math.pow(2, semitones / 12);
   }
 
-static generateScale(startNote: string, scaleType: ScaleType = ScaleType.Major, direction: Direction = Direction.Ascending): string[] {
+  static generateScale(startNote: string, scaleType: ScaleType = ScaleType.Major, direction: Direction = Direction.Ascending): string[] {
     const { note, octave } = MusicalStaff.parseNote(startNote);
     const startIndex = MusicalStaff.NOTES.indexOf(note);
-    const scaleIntervals = scaleType === ScaleType.Major ? [2, 2, 1, 2, 2, 2, 1] : [2, 1, 2, 2, 1, 2, 2];
+    const scaleIntervals = MusicalStaff.SCALE_INTERVALS[scaleType];
     
     if (direction === Direction.Ascending) {
       return scaleIntervals.reduce((scale, interval) => {
@@ -66,9 +97,12 @@ static generateScale(startNote: string, scaleType: ScaleType = ScaleType.Major, 
   }
 }
 
+
 class Keyboard {
-  private async playFrequencies(frequencies: number[], duration = 0.7): Promise<void> {
-    const command = `ffplay -f lavfi -i "sine=frequency=${frequencies.join('+')}:duration=${duration}" -autoexit -nodisp -loglevel quiet`;
+ private async playFrequencies(frequencies: number[], duration = 0.5): Promise<void> {
+    const fadeDuration = 0.05; // 50 milliseconds fade-out
+    const totalDuration = duration + fadeDuration;
+    const command = `ffplay -f lavfi -i "sine=frequency=${frequencies.join('+')}:duration=${totalDuration},afade=t=out:st=${duration}:d=${fadeDuration}" -autoexit -nodisp -loglevel quiet`;
     try {
       await execAsync(command);
     } catch (error) {
@@ -76,7 +110,7 @@ class Keyboard {
     }
   }
 
-  async playNote(noteSymbol: string, duration = 0.7): Promise<void> {
+  async playNote(noteSymbol: string, duration = 0.5): Promise<void> {
     const frequency = MusicalStaff.noteToFrequency(noteSymbol);
     await this.playFrequencies([frequency], duration);
   }
@@ -84,7 +118,7 @@ class Keyboard {
   async playSequence(sequence: string[], durations?: number[]): Promise<void> {
     for (let i = 0; i < sequence.length; i++) {
       const note = sequence[i];
-      const duration = durations && durations[i] !== undefined ? durations[i] : 0.7;
+      const duration = durations && durations[i] !== undefined ? durations[i] : 0.5;
       await this.playNote(note, duration);
     }
   }
@@ -94,17 +128,27 @@ class Keyboard {
   }
 }
 
-// Example usage
 const keyboard = new Keyboard();
 
-// Play C major and C minor scales, ascending and descending
-console.log("Playing C major ascending scale...");
-await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Major, Direction.Ascending));
-console.log("Playing C major descending scale...");
-await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Major, Direction.Descending));
-console.log("Playing C minor ascending scale...");
-await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Minor, Direction.Ascending));
-console.log("Playing C minor descending scale...");
-await keyboard.playSequence(keyboard.getScale('C4', ScaleType.Minor, Direction.Descending));
+
+// Function to play and log a scale
+async function playAndLogScale(startNote: string, scaleType: ScaleType, direction: Direction) {
+  console.log(`Playing ${scaleType} scale starting from ${startNote} ${direction}...`);
+  const scale = keyboard.getScale(startNote, scaleType, direction);
+  console.log(`Notes: ${scale.join(', ')}`);
+  await keyboard.playSequence(scale);
+}
+
+// Play various scales
+const scaleTypes = Object.values(ScaleType);
+const startNotes = ['C4', 'G4', 'F#4', 'Bb4'];
+
+// blues major minor
+for (const startNote of startNotes) {
+  for (const scaleType of [ScaleType.Blues, ScaleType.PentatonicMajor, ScaleType.PentatonicMinor]) {
+    await playAndLogScale(startNote, scaleType as ScaleType, Direction.Ascending);
+    await playAndLogScale(startNote, scaleType as ScaleType, Direction.Descending);
+  }
+}
 
 export { Keyboard, MusicalStaff, ScaleType, Direction };
