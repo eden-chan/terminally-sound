@@ -3,22 +3,42 @@
 import { MusicalStaff } from './musicalStaff';
 import { ChordType, Direction, ScaleType } from './types';
 
+// Base class for musical elements
+abstract class MusicalElement {
+  abstract getDuration(): number;
+  abstract transpose(semitones: number): void;
+}
 export class Tick {
   constructor(public value: number) {}
 }
 
-export class NoteEvent {
+export class NoteEvent extends MusicalElement {
   constructor(
     public pitch: string | undefined,
     public duration: number,
     public volume: number,
     public isRest: boolean = false
-  ) {}
+  ) {
+    super();
+  }
 
   static createRest(duration: number): NoteEvent {
     return new NoteEvent(undefined, duration, 0, true);
   }
+
+  getDuration(): number {
+    return this.duration;
+  }
+
+  transpose(semitones: number): void {
+    if (this.pitch) {
+      // Implement pitch transposition logic here
+      // This is a placeholder and needs to be implemented
+      console.log(`Transposing ${this.pitch} by ${semitones} semitones`);
+    }
+  }
 }
+
 
 export class TimeSignature {
   constructor(public numerator: number, public denominator: number) {}
@@ -28,30 +48,96 @@ export class TimeSignature {
   }
 }
 
-export class Measure {
-  constructor(public timeSignature: TimeSignature, public events: NoteEvent[]) {}
+export class Measure extends MusicalElement {
+  constructor(public timeSignature: TimeSignature, public events: NoteEvent[]) {
+    super();
+  }
 
   addEvent(event: NoteEvent): void {
     this.events.push(event);
   }
 
   getDuration(): number {
-    return this.events.reduce((total, event) => total + event.duration, 0);
+    return this.events.reduce((total, event) => total + event.getDuration(), 0);
+  }
+
+  transpose(semitones: number): void {
+    this.events.forEach(event => event.transpose(semitones));
   }
 }
 
+
+export type PhraseElement = Measure | ChordProgression | NoteEvent[];
+
 export class Phrase {
-  constructor(public measures: Measure[]) {}
+  private elements: PhraseElement[];
+  private tempo: Tempo | null = null;
+
+  constructor(elements: PhraseElement[] = []) {
+    this.elements = elements;
+  }
+
+  addElement(element: PhraseElement): void {
+    this.elements.push(element);
+  }
 
   addMeasure(measure: Measure): void {
-    this.measures.push(measure);
+    this.addElement(measure);
+  }
+
+  addChordProgression(chordProgression: ChordProgression): void {
+    this.addElement(chordProgression);
+  }
+
+  addMelody(melody: NoteEvent[]): void {
+    this.addElement(melody);
+  }
+
+  setTempo(tempo: Tempo): void {
+    this.tempo = tempo;
+  }
+
+  getTempo(): Tempo | null {
+    return this.tempo;
   }
 
   getDuration(): number {
-    return this.measures.reduce((total, measure) => total + measure.getDuration(), 0);
+    return this.elements.reduce((total, element) => {
+      if (element instanceof Measure) {
+        return total + element.getDuration();
+      } else if (element instanceof ChordProgression) {
+        return total + element.getTotalDuration();
+      } else if (Array.isArray(element)) { // NoteEvent[]
+        return total + element.reduce((sum, note) => sum + note.duration, 0);
+      }
+      return total;
+    }, 0);
+  }
+
+  getElements(): PhraseElement[] {
+    return this.elements;
+  }
+
+  // Helper method to get all notes in the phrase, including those from chords
+  getAllNotes(): NoteEvent[] {
+    let allNotes: NoteEvent[] = [];
+    for (const element of this.elements) {
+      if (element instanceof Measure) {
+        allNotes = allNotes.concat(element.events);
+      } else if (element instanceof ChordProgression) {
+        allNotes = allNotes.concat(element.getAllNotes());
+      } else if (Array.isArray(element)) { // NoteEvent[]
+        allNotes = allNotes.concat(element);
+      }
+    }
+    return allNotes;
+  }
+
+  // Method to transpose the entire phrase
+  transpose(semitones: number): void {
+  
   }
 }
-
 export class Tempo {
   constructor(public bpm: number) {}
 
@@ -60,14 +146,16 @@ export class Tempo {
   }
 }
 
-export class Score {
+export class Score extends MusicalElement {
   constructor(
     public title: string,
     public composer: string,
     public tempo: Tempo,
     public timeSignature: TimeSignature,
     public phrases: Phrase[]
-  ) {}
+  ) {
+    super();
+  }
 
   addPhrase(phrase: Phrase): void {
     this.phrases.push(phrase);
@@ -76,7 +164,12 @@ export class Score {
   getDuration(): number {
     return this.phrases.reduce((total, phrase) => total + phrase.getDuration(), 0);
   }
+
+  transpose(semitones: number): void {
+    this.phrases.forEach(phrase => phrase.transpose(semitones));
+  }
 }
+
 
 
 export enum ChordPlayStyle {
@@ -116,12 +209,14 @@ export class RhythmPattern {
     ], 2);
   }
 }
-export class ChordProgression {
+export class ChordProgression extends MusicalElement {
   constructor(
     public chords: { root: string; type: ChordType; duration: number; baseVolume: number }[],
     public playStyle: ChordPlayStyle,
     public rhythmPattern: RhythmPattern
-  ) {}
+  ) {
+    super();
+  }
 
   static fromRomanNumerals(key: string, numerals: string[], playStyle: ChordPlayStyle, rhythmPattern: RhythmPattern): ChordProgression {
     // Implementation to convert roman numerals to actual chords
@@ -170,6 +265,26 @@ export class ChordProgression {
     });
 
     return new ChordProgression(chords, playStyle, rhythmPattern);
+  }
+
+    getTotalDuration(): number {
+    return this.chords.reduce((total, chord) => total + chord.duration, 0) * 1000; // Convert to milliseconds
+  }
+
+  getDuration(): number {
+    return this.chords.reduce((total, chord) => total + chord.duration, 0) * 1000; // Convert to milliseconds
+  }
+
+  transpose(semitones: number): void {
+    // Implement chord transposition logic here
+    // This is a placeholder and needs to be implemented
+    console.log(`Transposing chord progression by ${semitones} semitones`);
+  }
+
+  getAllNotes(): NoteEvent[] {
+    // Implement logic to return all notes in the chord progression
+    // This is a placeholder and needs to be implemented
+    return [];
   }
 }
 

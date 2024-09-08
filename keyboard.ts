@@ -17,8 +17,7 @@ export class Keyboard {
   }
 
   async playChord(chord: Chord): Promise<void> {
-    const frequencies = chord.map(note => MusicalStaff.noteToFrequency(note.pitch));
-    await AudioPlayer.playFrequencies(frequencies, chord[0].duration / 1000, chord[0].volume);
+    await Promise.all(chord.map(note => this.playNoteEvent(new NoteEvent(note.pitch, note.duration, note.volume, false))));
   }
 
   async playMeasure(measure: Measure): Promise<void> {
@@ -28,8 +27,12 @@ export class Keyboard {
   }
 
   async playPhrase(phrase: Phrase): Promise<void> {
-    for (const measure of phrase.measures) {
-      await this.playMeasure(measure);
+    for (const element of phrase.getElements()) {
+      if (element instanceof Measure) {
+        await this.playMeasure(element);
+      } else if (element instanceof ChordProgression) {
+        await this.playChordProgression(element);
+      }
     }
   }
 
