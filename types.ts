@@ -24,7 +24,7 @@ export enum Direction {
 export interface Note {
   pitch: string;
   duration: number;
-  velocity: number;
+  volume: number;
   octive?: number;
 }
 

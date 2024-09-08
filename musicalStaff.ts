@@ -51,9 +51,9 @@ export class MusicalStaff {
         const newIndex = (prevIndex + interval) % 12;
         const newOctave = prevOctave + (prevIndex + interval >= 12 ? 1 : 0);
         const newPitch = `${MusicalStaff.NOTES[newIndex]}${newOctave}`;
-        scale.push({ pitch: newPitch, duration: 0.5, velocity: 0.8 });
+        scale.push({ pitch: newPitch, duration: 0.5, volume: 0.8 });
         return scale;
-      }, [{ pitch: startNote, duration: 0.5, velocity: 0.8 }]);
+      }, [{ pitch: startNote, duration: 0.5, volume: 0.8 }]);
     } else {
       // Generate ascending scale first
       const ascendingScale = this.generateScale(startNote, scaleType, Direction.Ascending);
@@ -103,7 +103,7 @@ export class MusicalStaff {
       const newIndex = (rootIndex + interval) % 12;
       const newOctave = octave + Math.floor((rootIndex + interval) / 12);
       const pitch = `${MusicalStaff.NOTES[newIndex]}${newOctave}`;
-      return { pitch, duration: 0.5, velocity: 0.8 };
+      return { pitch, duration: 0.5, volume: 0.8 };
     });
   }
 }
