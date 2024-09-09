@@ -68,42 +68,78 @@ export class MusicalStaff {
       });
     }
   }
-  static generateChord(rootNote: string, chordType: ChordType): Chord {
-    const { note, octave } = MusicalStaff.parseNote(rootNote);
-    const rootIndex = MusicalStaff.NOTES.indexOf(note);
-    let intervals: number[];
+static generateChord(rootNote: string, chordType: ChordType): Chord {
+  const { note, octave } = MusicalStaff.parseNote(rootNote);
+  const rootIndex = MusicalStaff.NOTES.indexOf(note);
+  let intervals: number[];
 
-    switch (chordType) {
-      case ChordType.Major:
-        intervals = [0, 4, 7];
-        break;
-      case ChordType.Minor:
-        intervals = [0, 3, 7];
-        break;
-      case ChordType.Diminished:
-        intervals = [0, 3, 6];
-        break;
-      case ChordType.Augmented:
-        intervals = [0, 4, 8];
-        break;
-      case ChordType.MajorSeventh:
-        intervals = [0, 4, 7, 11];
-        break;
-      case ChordType.MinorSeventh:
-        intervals = [0, 3, 7, 10];
-        break;
-      case ChordType.DominantSeventh:
-        intervals = [0, 4, 7, 10];
-        break;
-      default:
-        throw new Error(`Unsupported chord type: ${chordType}`);
-    }
+  switch (chordType) {
+    case ChordType.Major:
+      intervals = [0, 4, 7];
+      break;
+    case ChordType.Minor:
+      intervals = [0, 3, 7];
+      break;
+    case ChordType.Diminished:
+      intervals = [0, 3, 6];
+      break;
+    case ChordType.Augmented:
+      intervals = [0, 4, 8];
+      break;
+    case ChordType.MajorSeventh:
+      intervals = [0, 4, 7, 11];
+      break;
+    case ChordType.MinorSeventh:
+      intervals = [0, 3, 7, 10];
+      break;
+    case ChordType.DominantSeventh:
+      intervals = [0, 4, 7, 10];
+      break;
+    case ChordType.Ninth:
+      intervals = [0, 4, 7, 10, 14];
+      break;
+    case ChordType.MajorNinth:
+      intervals = [0, 4, 7, 11, 14];
+      break;
+    case ChordType.MinorNinth:
+      intervals = [0, 3, 7, 10, 14];
+      break;
+    case ChordType.DominantNinth:
+      intervals = [0, 4, 7, 10, 14];
+      break;
+    case ChordType.Sixth:
+      intervals = [0, 4, 7, 9];
+      break;
+    case ChordType.MinorSixth:
+      intervals = [0, 3, 7, 9];
+      break;
+    case ChordType.DiminishedSeventh:
+      intervals = [0, 3, 6, 9];
+      break;
+    case ChordType.HalfDiminishedSeventh:
+      intervals = [0, 3, 6, 10];
+      break;
+    case ChordType.AugmentedSeventh:
+      intervals = [0, 4, 8, 10];
+      break;
+    case ChordType.Eleventh:
+      intervals = [0, 4, 7, 10, 14, 17];
+      break;
+    case ChordType.Thirteenth:
+      intervals = [0, 4, 7, 10, 14, 17, 21];
+      break;
+    default:
+      throw new Error(`Unsupported chord type: ${chordType}`);
+  }
 
-    return intervals.map(interval => {
-      const newIndex = (rootIndex + interval) % 12;
-      const newOctave = octave + Math.floor((rootIndex + interval) / 12);
-      const pitch = `${MusicalStaff.NOTES[newIndex]}${newOctave}`;
-      return { pitch, duration: 0.5, volume: 0.8 };
-    });
+  return intervals.map(interval => {
+    const noteIndex = (rootIndex + interval) % 12;
+    const noteOctave = octave + Math.floor((rootIndex + interval) / 12);
+    return {
+      pitch: `${MusicalStaff.NOTES[noteIndex]}${noteOctave}`,
+      duration: 0.5,  // Default duration
+      volume: 0.8     // Default volume
+    };
+  });
   }
 }

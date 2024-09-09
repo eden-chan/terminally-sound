@@ -9,6 +9,7 @@ export class Keyboard {
   async playNoteEvent(noteEvent: NoteEvent): Promise<void> {
     if (!noteEvent.isRest && noteEvent.pitch) {
       const frequency = MusicalStaff.noteToFrequency(noteEvent.pitch);
+      console.log(`${noteEvent.pitch}: ${frequency}Hz`);
       await AudioPlayer.playFrequencies([frequency], noteEvent.duration / 1000, noteEvent.volume);
     } else {
       // For rests, we just wait for the duration
@@ -17,16 +18,24 @@ export class Keyboard {
   }
 
   async playChord(chord: Chord): Promise<void> {
-    await Promise.all(chord.map(note => this.playNoteEvent(new NoteEvent(note.pitch, note.duration, note.volume, false))));
+    console.group('Chord');
+    await Promise.all(chord.map(note => {
+      console.log(`${note.pitch}, Duration: ${note.duration}, Volume: ${note.volume}`);
+      return this.playNoteEvent(new NoteEvent(note.pitch, note.duration, note.volume, false));
+    }));
+    console.groupEnd();
   }
 
   async playMeasure(measure: Measure): Promise<void> {
+    console.group('Measure');
     for (const noteEvent of measure.events) {
       await this.playNoteEvent(noteEvent);
     }
+    console.groupEnd();
   }
 
   async playPhrase(phrase: Phrase): Promise<void> {
+    console.group('Playing Phrase');
     for (const element of phrase.getElements()) {
       if (element instanceof Measure) {
         await this.playMeasure(element);
@@ -34,15 +43,18 @@ export class Keyboard {
         await this.playChordProgression(element);
       }
     }
+    console.groupEnd();
   }
 
   async playScore(score: Score): Promise<void> {
-    console.log(`Playing: ${score.title} by ${score.composer}`);
+    console.group('Playing Score');
+    console.log(`${score.title} by ${score.composer}`);
     console.log(`Tempo: ${score.tempo.bpm} BPM, Time Signature: ${score.timeSignature.toString()}`);
     
     for (const phrase of score.phrases) {
       await this.playPhrase(phrase);
     }
+    console.groupEnd();
   }
 
   async playChordProgression(progression: ChordProgression): Promise<void> {
@@ -61,12 +73,12 @@ export class Keyboard {
         case ChordPlayStyle.Broken:
           for (let i = 0; i < chord.length; i++) {
             const patternIndex = i % progression.rhythmPattern.pattern.length;
-            await this.playNoteEvent({
-              ...chord[i],
-              duration: (chordDuration / chord.length) * progression.rhythmPattern.pattern[patternIndex].duration,
-              volume: chordInfo.baseVolume * progression.rhythmPattern.pattern[patternIndex].volume,
-              isRest:false
-            });
+            await this.playNoteEvent(new NoteEvent(
+              chord[i].pitch,
+              (chordDuration / chord.length) * progression.rhythmPattern.pattern[patternIndex].duration,
+              chordInfo.baseVolume * progression.rhythmPattern.pattern[patternIndex].volume,
+              false
+            ));
           }
           break;
         case ChordPlayStyle.Rag:
@@ -76,7 +88,12 @@ export class Keyboard {
             volume: chordInfo.baseVolume * progression.rhythmPattern.pattern[0].volume,
             isRest:false
           };
-          await this.playNoteEvent(bassNote);
+          await this.playNoteEvent(new NoteEvent(
+            bassNote.pitch,
+            bassNote.duration,
+            bassNote.volume,
+            false
+          ));
           await this.playChord(chord.slice(1).map(note => ({
             ...note,
             duration: chordDuration / 2,
@@ -89,12 +106,12 @@ export class Keyboard {
             const noteIndex = i % chord.length;
             const patternNote = progression.rhythmPattern.pattern[i];
             const noteDuration = patternNote.duration * (chordDuration / progression.rhythmPattern.totalDuration);
-            await this.playNoteEvent({
-              ...chord[noteIndex],
-              duration: noteDuration,
-              volume: chordInfo.baseVolume * patternNote.volume,
-              isRest:false
-            });
+            await this.playNoteEvent(new NoteEvent(
+              chord[noteIndex].pitch,
+              noteDuration,
+              chordInfo.baseVolume * patternNote.volume,
+              false
+            ));
           }
           break;
       }

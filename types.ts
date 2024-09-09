@@ -25,7 +25,6 @@ export interface Note {
   pitch: string;
   duration: number;
   volume: number;
-  octive?: number;
 }
 
 export type Chord = Note[];
@@ -38,4 +37,15 @@ export enum ChordType {
   MajorSeventh = 'major7',
   MinorSeventh = 'minor7',
   DominantSeventh = 'dominant7',
+  Ninth = 'ninth',
+  MajorNinth = 'major9',
+  MinorNinth = 'minor9',
+  DominantNinth = 'dominant9',
+  Sixth = 'sixth',
+  MinorSixth = 'minor6',
+  DiminishedSeventh = 'dim7',
+  HalfDiminishedSeventh = 'half-dim7',
+  AugmentedSeventh = 'aug7',
+  Eleventh = 'eleventh',
+  Thirteenth = 'thirteenth'
 }
